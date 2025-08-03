@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emotional Support Chatbot - Sophia</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #F5F7FA;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    #chat-container {
+      width: 90%;
+      max-width: 800px;
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    #avatar {
+      width: 100px;
+      animation: bounceIn 1s;
+      transition: transform 0.3s ease;
+    }
+    #avatar.typing {
+      animation: typingPulse 0.8s infinite alternate;
+    }
+    #chat {
+      max-height: 400px;
+      overflow-y: auto;
+      margin: 20px 0;
+      padding: 10px;
+      background: #f0f4f8;
+      border-radius: 10px;
+    }
+    .message {
+      margin-bottom: 10px;
+    }
+    .user {
+      color: #4A707A;
+    }
+    .bot {
+      color: #94B0B7;
+    }
+    .bot span {
+      display: inline-block;
+      animation: typewriter 0.5s steps(40, end) 1;
+    }
+    #input-area {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    input, button {
+      padding: 10px;
+      border-radius: 6px;
+      border: none;
+    }
+    input {
+      flex: 1;
+      border: 1px solid #ccc;
+    }
+    button {
+      background-color: #6A8D92;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #4A707A;
+    }
+    #controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 10px;
+    }
+    #tts-toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    #admin-panel {
+      display: none;
+      width: 90%;
+      max-width: 1000px;
+      margin-top: 20px;
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    #admin-chats {
+      max-height: 500px;
+      overflow-y: auto;
+      margin-top: 10px;
+      padding: 10px;
+      background: #f8f8f8;
+      border-radius: 8px;
+    }
+    .chat-session {
+      margin-bottom: 20px;
+      padding: 15px;
+      background: #f0f4f8;
+      border-radius: 8px;
+    }
+    .session-header {
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #4A707A;
+    }
+    #admin-login {
+      display: none;
+      margin-top: 20px;
+      padding: 20px;
+      background: white;
+      border-radius: 10px;
+      width: 90%;
+      max-width: 800px;
+    }
+    #admin-login input {
+      width: 100%;
+      margin-bottom: 15px;
+    }
+    #admin-access {
+      text-align: center;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #eee;
+    }
+    #admin-access-btn {
+      background: transparent;
+      color: #6A8D92;
+      text-decoration: underline;
+      border: none;
+      cursor: pointer;
+    }
+    #knowledge-base {
+      margin-top: 20px;
+    }
+    #pending-questions {
+      margin-top: 20px;
+    }
+    .question-item {
+      margin-bottom: 10px;
+      padding: 10px;
+      background: #fff;
+      border-radius: 6px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .add-answer-form {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .add-answer-form input {
+      flex: 1;
+    }
+    @keyframes typingPulse {
+      from { transform: scale(1); }
+      to { transform: scale(1.05); }
+    }
+    @keyframes typing {
+      from { width: 0; }
+      to { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div id="chat-container">
+    <div style="display: flex; align-items: center; gap: 20px;">
+      <img id="avatar" src="sophia.png" alt="Sophia" />
+      <h2>Sophia - Emotional Support Bot</h2>
+    </div>
+    <div id="chat"></div>
+    <div id="controls">
+      <div id="tts-toggle">
+        <label for="tts-switch">🔊 Text-to-Speech</label>
+        <input type="checkbox" id="tts-switch" checked />
+      </div>
+    </div>
+    <div id="input-area">
+      <input type="text" id="user-input" placeholder="How are you feeling today?">
+      <button onclick="sendMessage()">Send</button>
+    </div>
+    
+    <!-- Admin access link -->
+    <div id="admin-access">
+      <button id="admin-access-btn" onclick="showAdminLogin()">Admin Access</button>
+    </div>
+  </div>
+
+  <!-- Admin Login (hidden by default) -->
+  <div id="admin-login">
+    <h3>Admin Login</h3>
+    <input type="password" id="admin-password" placeholder="Enter admin password">
+    <button onclick="checkAdminLogin()">Login</button>
+    <button onclick="hideAdminLogin()" style="background-color: #ccc; color: #333; margin-left: 10px;">Cancel</button>
+  </div>
+
+  <!-- Admin Panel (hidden by default) -->
+  <div id="admin-panel">
+    <h2>Admin Panel</h2>
+    <button onclick="clearAllChats()" style="background-color: #ff6b6b; margin-bottom: 10px;">Clear All Chats</button>
+    <button onclick="logoutAdmin()" style="background-color: #ccc; color: #333; margin-left: 10px;">Logout</button>
+    
+    <div id="knowledge-base">
+      <h3>Knowledge Base</h3>
+      <div id="admin-chats"></div>
+    </div>
+    
+    <div id="pending-questions">
+      <h3>Pending Questions</h3>
+      <div id="pending-questions-list"></div>
+    </div>
+  </div>
+
+  <script>
+    // Storage keys
+    const CHAT_STORAGE_KEY = 'sophia_chat_storage';
+    const KNOWLEDGE_BASE_KEY = 'sophia_knowledge_base';
+    const PENDING_QUESTIONS_KEY = 'sophia_pending_questions';
+    const ADMIN_PASSWORD = 'sophia123'; // Change this to your secure password
+    
+    // DOM elements
+    const chat = document.getElementById('chat');
+    const ttsSwitch = document.getElementById('tts-switch');
+    const avatar = document.getElementById('avatar');
+    const adminPanel = document.getElementById('admin-panel');
+    const adminChats = document.getElementById('admin-chats');
+    const adminLogin = document.getElementById('admin-login');
+    const adminPasswordInput = document.getElementById('admin-password');
+    const adminAccessBtn = document.getElementById('admin-access-btn');
+    const pendingQuestionsList = document.getElementById('pending-questions-list');
+
+    // Generate a unique ID for this user session
+    const sessionId = 'user_' + Math.random().toString(36).substr(2, 9);
+    let isAdmin = false;
+
+    // Initialize storage if it doesn't exist
+    function initializeStorage() {
+      if (!localStorage.getItem(CHAT_STORAGE_KEY)) {
+        localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify({}));
+      }
+      if (!localStorage.getItem(KNOWLEDGE_BASE_KEY)) {
+        localStorage.setItem(KNOWLEDGE_BASE_KEY, JSON.stringify({
+          "hello": "Hi there! How can I support you today? 😊",
+          "help": "I'm here for you. What do you need? 🤗",
+          "sadness": "I'm sorry to hear that. Want to share more? 💔",
+          "depressed": "It's okay to feel this way. I'm here to listen. 💜",
+          "anxious": "Take a deep breath. I'm here with you. 🌬️",
+          "stressed": "It's normal to feel stressed. Let's talk about it. 🧠",
+          "lonely": "You are not alone. I'm here for you. 🤝",
+          "i need help": "Of course! What can I assist you with? 🛠️",
+          "thank you": "You're welcome! I'm glad to help. 😊",
+          "goodbye": "Take care! I'm here whenever you need me. 👋",
+          "bye": "Goodbye! Remember, I'm just a message away. 🌟",
+          "love": "Love is a beautiful feeling! Spread it around. ❤️",
+          "hate": "It's okay to feel that way sometimes. Let's talk about it.😔",
+          "confused": "It's okay to feel confused. Let's figure it out together. 🤔",
+          "breakup": "I'm sorry to hear that. Want to share more? 💔.Breakups are tough. I'm here to support you. 💔",
+          "relationship": "Relationships can be challenging. I'm here to help. 💑",
+          "relationship issues": "I'm here to listen. What's on your mind? 💬",
+          "stressed": "Try taking a deep breath. I'm here with you 🍃",
+          "angry": "It's okay to feel angry. I'm here. 🌋",
+          "tired": "You deserve rest. Take it easy tonight. 🌙",
+          "sad": "I'm here for you. Want to talk more about it? 💙",
+          "happy": "That's amazing! Tell me more 😊",
+          "stress": "Try taking a deep breath. I'm here with you 🍃"
+        }));
+      }
+      if (!localStorage.getItem(PENDING_QUESTIONS_KEY)) {
+        localStorage.setItem(PENDING_QUESTIONS_KEY, JSON.stringify([]));
+      }
+    }
+    initializeStorage();
+
+    // Show admin login form
+    function showAdminLogin() {
+      adminLogin.style.display = 'block';
+      adminAccessBtn.style.display = 'none';
+    }
+
+    // Hide admin login form
+    function hideAdminLogin() {
+      adminLogin.style.display = 'none';
+      adminAccessBtn.style.display = 'inline';
+    }
+
+    // Check admin login
+    function checkAdminLogin() {
+      if (adminPasswordInput.value === ADMIN_PASSWORD) {
+        isAdmin = true;
+        adminLogin.style.display = 'none';
+        adminPanel.style.display = 'block';
+        adminAccessBtn.style.display = 'none';
+        loadAllChats();
+        loadPendingQuestions();
+      } else {
+        alert('Incorrect password');
+      }
+      adminPasswordInput.value = '';
+    }
+
+    // Logout admin
+    function logoutAdmin() {
+      isAdmin = false;
+      adminPanel.style.display = 'none';
+      adminAccessBtn.style.display = 'inline';
+    }
+
+    // Load all chats for admin view
+    function loadAllChats() {
+      if (!isAdmin) return;
+      
+      const allChats = JSON.parse(localStorage.getItem(CHAT_STORAGE_KEY));
+      adminChats.innerHTML = '';
+      
+      for (const [sessionId, messages] of Object.entries(allChats)) {
+        const sessionDiv = document.createElement('div');
+        sessionDiv.className = 'chat-session';
+        
+        const header = document.createElement('div');
+        header.className = 'session-header';
+        header.textContent = `Session: ${sessionId}`;
+        sessionDiv.appendChild(header);
+        
+        messages.forEach(msg => {
+          const msgDiv = document.createElement('div');
+          msgDiv.className = `message ${msg.sender}`;
+          msgDiv.innerHTML = `<strong>${msg.sender === 'bot' ? 'Sophia' : 'User'}:</strong> ${msg.message}`;
+          sessionDiv.appendChild(msgDiv);
+        });
+        
+        adminChats.appendChild(sessionDiv);
+      }
+    }
+
+    // Load pending questions
+    function loadPendingQuestions() {
+      if (!isAdmin) return;
+      
+      const pendingQuestions = JSON.parse(localStorage.getItem(PENDING_QUESTIONS_KEY));
+      pendingQuestionsList.innerHTML = '';
+      
+      if (pendingQuestions.length === 0) {
+        pendingQuestionsList.innerHTML = '<p>No pending questions</p>';
+        return;
+      }
+      
+      pendingQuestions.forEach((question, index) => {
+        const questionDiv = document.createElement('div');
+        questionDiv.className = 'question-item';
+        questionDiv.innerHTML = `
+          <p><strong>Question:</strong> ${question}</p>
+          <div class="add-answer-form">
+            <input type="text" id="answer-${index}" placeholder="Enter response">
+            <button onclick="addAnswer('${question}', ${index})">Add Answer</button>
+          </div>
+        `;
+        pendingQuestionsList.appendChild(questionDiv);
+      });
+    }
+
+    // Add answer to knowledge base
+    function addAnswer(question, index) {
+      const answerInput = document.getElementById(`answer-${index}`);
+      const answer = answerInput.value.trim();
+      
+      if (!answer) {
+        alert('Please enter an answer');
+        return;
+      }
+      
+      // Update knowledge base
+      const knowledgeBase = JSON.parse(localStorage.getItem(KNOWLEDGE_BASE_KEY));
+      knowledgeBase[question.toLowerCase()] = answer;
+      localStorage.setItem(KNOWLEDGE_BASE_KEY, JSON.stringify(knowledgeBase));
+      
+      // Remove from pending questions
+      const pendingQuestions = JSON.parse(localStorage.getItem(PENDING_QUESTIONS_KEY));
+      pendingQuestions.splice(index, 1);
+      localStorage.setItem(PENDING_QUESTIONS_KEY, JSON.stringify(pendingQuestions));
+      
+      // Reload the lists
+      loadPendingQuestions();
+      answerInput.value = '';
+    }
+
+    // Clear all chats
+    function clearAllChats() {
+      if (confirm('Are you sure you want to delete ALL chat history?')) {
+        localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify({}));
+        loadAllChats();
+      }
+    }
+
+    // Save a message to storage
+    function saveMessage(sender, message) {
+      const allChats = JSON.parse(localStorage.getItem(CHAT_STORAGE_KEY));
+      
+      if (!allChats[sessionId]) {
+        allChats[sessionId] = [];
+      }
+      
+      allChats[sessionId].push({
+        sender,
+        message,
+        timestamp: new Date().toISOString()
+      });
+      
+      localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(allChats));
+      
+      // Update admin view if open
+      if (isAdmin) {
+        loadAllChats();
+      }
+    }
+
+    // Save a pending question
+    function savePendingQuestion(question) {
+      const pendingQuestions = JSON.parse(localStorage.getItem(PENDING_QUESTIONS_KEY));
+      
+      // Check if question already exists
+      if (!pendingQuestions.includes(question.toLowerCase())) {
+        pendingQuestions.push(question.toLowerCase());
+        localStorage.setItem(PENDING_QUESTIONS_KEY, JSON.stringify(pendingQuestions));
+        
+        // Update admin view if open
+        if (isAdmin) {
+          loadPendingQuestions();
+        }
+      }
+    }
+
+    // Avatar state management
+    function setAvatar(state) {
+      avatar.classList.remove('thinking', 'speaking', 'typing');
+      
+      if (state === 'thinking') {
+        avatar.src = 'sophiaThink.png';
+        avatar.classList.add('thinking');
+      } else if (state === 'speaking') {
+        avatar.src = 'sophiat.png';
+        avatar.classList.add('speaking');
+      } else if (state === 'typing') {
+        avatar.src = 'sophiat.png';
+        avatar.classList.add('typing');
+      } else {
+        avatar.src = 'sophia.png';
+      }
+    }
+
+    function appendMessage(sender, message, animate = false) {
+      const div = document.createElement('div');
+      div.classList.add('message');
+      div.classList.add(sender);
+      
+      if (sender === 'bot' && animate) {
+        const span = document.createElement('span');
+        span.textContent = '';
+        div.innerHTML = `<strong>Sophia:</strong> `;
+        div.appendChild(span);
+        chat.appendChild(div);
+        
+        setAvatar('typing');
+        typeWriterEffect(span, message, () => {
+          setAvatar('speaking');
+          speak(message, () => {
+            setAvatar();
+          });
+        });
+      } else {
+        div.innerHTML = `<strong>${sender === 'bot' ? 'Sophia' : 'You'}:</strong> ${message}`;
+        chat.appendChild(div);
+        if (sender === 'bot') {
+          setAvatar('speaking');
+          speak(message, () => {
+            setAvatar();
+          });
+        }
+      }
+      
+      // Save message to storage
+      saveMessage(sender, message);
+      
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function speak(text, onendCallback) {
+      if (!ttsSwitch.checked) return onendCallback?.();
+      const synth = window.speechSynthesis;
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.voice = synth.getVoices().find(v => v.name.includes('Google') || v.default);
+      utter.onend = () => {
+        onendCallback?.();
+      };
+      synth.speak(utter);
+    }
+
+    function getBotResponse(text) {
+      const input = text.toLowerCase();
+      const knowledgeBase = JSON.parse(localStorage.getItem(KNOWLEDGE_BASE_KEY));
+      
+      // First check exact matches in knowledge base
+      if (knowledgeBase[input]) {
+        return Promise.resolve(knowledgeBase[input]);
+      }
+      
+      // Then check for partial matches
+      for (const key in knowledgeBase) {
+        if (input.includes(key)) {
+          return Promise.resolve(knowledgeBase[key]);
+        }
+      }
+      
+      // Check individual words
+      const words = input.split(/\s+/);
+      for (let word of words) {
+        if (knowledgeBase[word]) {
+          return Promise.resolve(knowledgeBase[word]);
+        }
+      }
+      
+      // If it's a question, try to fetch from web
+      if (input.includes("what") || input.includes("how") || input.includes("why") || 
+          input.includes("when") || input.includes("where") || input.includes("who")) {
+        return fetchGoogleResult(input);
+      }
+      
+      // If we get here, we don't know the answer
+      savePendingQuestion(text);
+      
+      const neutral = [
+        "I'm still learning. An admin will review your question and add a response soon.",
+        "That's an interesting question. I'll need to learn more about that.",
+        "I don't have an answer for that yet, but I've noted your question for review."
+      ];
+      
+      return new Promise(resolve => {
+        setAvatar('thinking');
+        setTimeout(() => {
+          resolve(neutral[Math.floor(Math.random() * neutral.length)]);
+        }, 1000);
+      });
+    }
+
+    async function fetchGoogleResult(query) {
+      try {
+        setAvatar('thinking');
+        const response = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_redirect=1&no_html=1`);
+        const data = await response.json();
+
+        if (data.AbstractText) {
+          return data.AbstractText;
+        } else if (data.RelatedTopics && data.RelatedTopics.length > 0) {
+          return data.RelatedTopics[0].Text || "I found something, but it's a bit vague. Try rephrasing?";
+        } else {
+          savePendingQuestion(query);
+          return "I couldn't find a direct answer, but I've noted your question for review.";
+        }
+      } catch (err) {
+        savePendingQuestion(query);
+        return "Sorry, I couldn't reach the search service. I've noted your question for review.";
+      }
+    }
+
+    function typeWriterEffect(el, text, callback) {
+      let i = 0;
+      function type() {
+        if (i < text.length) {
+          el.textContent += text.charAt(i);
+          i++;
+          setTimeout(type, 30);
+        } else if (callback) {
+          callback();
+        }
+      }
+      type();
+    }
+
+    function sendMessage() {
+      const input = document.getElementById('user-input');
+      const text = input.value.trim();
+      if (!text) return;
+      appendMessage('user', text);
+      input.value = '';
+      getBotResponse(text).then(response => {
+        appendMessage('bot', response, true);
+      });
+    }
+
+    // Event listeners
+    document.getElementById('user-input').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        sendMessage();
+      }
+    });
+
+    // Initial greeting
+    setTimeout(() => {
+      appendMessage('bot', "Hello! I'm Sophia, your emotional support companion. How are you feeling today?", true);
+    }, 1000);
+  </script>
+</body>
+</html>

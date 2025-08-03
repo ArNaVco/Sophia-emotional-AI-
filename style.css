@@ -1,0 +1,10 @@
+#thinking {
+  font-style: italic;
+  color: #aaa;
+  animation: blink 1s step-end infinite;
+  margin-bottom: 10px;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
